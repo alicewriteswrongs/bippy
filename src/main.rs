@@ -4,6 +4,11 @@ use std::net::{TcpListener, TcpStream};
 
 static SERVER_ADDRESS: &str = "127.0.0.1:8080";
 
+mod parser;
+mod http_verb;
+
+use parser::parse_request;
+
 fn handle_stream(mut stream: TcpStream) -> Result<()> {
     let buf_reader = BufReader::new(&mut stream);
 
@@ -13,6 +18,8 @@ fn handle_stream(mut stream: TcpStream) -> Result<()> {
         // an empty line signifies the end of the HTTP request
         .take_while(|line| !line.is_empty())
         .collect();
+
+    let _request = parse_request(&lines);
 
     if cfg!(debug_assertions) {
         println!("received request:");
