@@ -4,8 +4,10 @@ use std::net::{TcpListener, TcpStream};
 
 static SERVER_ADDRESS: &str = "127.0.0.1:8080";
 
-mod parser;
 mod http_verb;
+mod http_version;
+mod parser;
+mod request;
 
 use parser::parse_request;
 
@@ -19,14 +21,13 @@ fn handle_stream(mut stream: TcpStream) -> Result<()> {
         .take_while(|line| !line.is_empty())
         .collect();
 
-    let _request = parse_request(&lines);
+    let request = parse_request(&lines)?;
 
     if cfg!(debug_assertions) {
-        println!("received request:");
-        for line in lines {
-            println!("    {}", line);
-        }
+        println!("received request: {:#?}", request);
     }
+
+    // stream.write_all(
 
     Ok(())
 }

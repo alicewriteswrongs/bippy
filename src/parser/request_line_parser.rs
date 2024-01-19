@@ -1,30 +1,27 @@
+use crate::{
+    http_verb::HttpVerb, http_version::HttpVersion, request::RequestLine,
+};
 use anyhow::{anyhow, Result};
-use crate::http_verb::HttpVerb;
 
-use std::{convert::TryFrom, collections::VecDeque};
+use std::{collections::VecDeque, convert::TryFrom};
 
-enum HttpVersion {
-    OneDotOne,
-}
-
-pub struct RequestLine {
-    verb: HttpVerb,
-    path: String,
-    version: HttpVersion,
-}
-
-impl TryFrom<HttpRequestLineParser> for RequestLine {
+impl TryFrom<&mut HttpRequestLineParser<'_>> for RequestLine {
     type Error = anyhow::Error;
 
-    fn try_from(parser: HttpRequestLineParser) -> Result<Self, anyhow::Error> {
+    fn try_from(
+        parser: &mut HttpRequestLineParser,
+    ) -> Result<Self, anyhow::Error> {
         if parser.state != HttpRequestLineParserState::Done {
             return Err(anyhow!(
                 "tried to construct a RequestLine struct before finishing parsing!"
             ));
         }
 
+        // borrow checker shenanigans
+        let parser = parser.clone();
+
         let request_line = RequestLine {
-            verb: parser.verb.expect("HTTP verb should be present"),
+            verb: parser.verb.expect("HTTP verb should be present").clone(),
             path: parser.path.expect("HTTP path should be present"),
             version: parser.version.expect("HTTP version should be present"),
         };
@@ -32,65 +29,69 @@ impl TryFrom<HttpRequestLineParser> for RequestLine {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 enum HttpRequestLineParserState {
-    Init,
     ParsingVerb,
     ParsingPath,
     ParsingVersion,
     Done,
 }
 
-struct HttpRequestLineParser {
-    raw_request_line: VecDeque<String>,
+#[derive(Clone)]
+struct HttpRequestLineParser<'a> {
+    raw_request_line: VecDeque<&'a str>,
     state: HttpRequestLineParserState,
     verb: Option<HttpVerb>,
     path: Option<String>,
     version: Option<HttpVersion>,
 }
 
-impl HttpRequestLineParser {
-    pub fn new(raw_request: String) -> HttpRequestLineParser {
+impl HttpRequestLineParser<'_> {
+    pub fn new(raw_request: &str) -> HttpRequestLineParser<'_> {
+        let words = raw_request.split(' ').collect::<Vec<&str>>();
         HttpRequestLineParser {
-            raw_request_line: raw_request.split(' ').into(),
-            state: HttpRequestLineParserState::Init,
+            raw_request_line: VecDeque::from(words),
+            state: HttpRequestLineParserState::ParsingVerb,
             verb: None,
             path: None,
             version: None,
         }
     }
 
-    pub fn chomp_word(&mut self) -> Result<String> {
-        if self.raw_request_line.len() == 0 {
-            return Err(anyhow!("tried to parse a request but found no more lines!"));
+    pub fn parse_word(&mut self) {
+        if let Some(raw_word) = self.raw_request_line.pop_front() {
+            match self.state {
+                HttpRequestLineParserState::ParsingVerb => {
+                    let verb = HttpVerb::try_from(raw_word)
+                        .expect("should be able to convert raw string to verb");
+                    self.verb = Some(verb);
+                    self.state = HttpRequestLineParserState::ParsingPath;
+                }
+                HttpRequestLineParserState::ParsingPath => {
+                    // TODO add some validation that this is "path-like" here
+                    self.path = Some(raw_word.to_string());
+                    self.state = HttpRequestLineParserState::ParsingVersion;
+                }
+                HttpRequestLineParserState::ParsingVersion => {
+                    self.version = Some(HttpVersion::OneDotOne);
+                    self.state = HttpRequestLineParserState::Done;
+                }
+                HttpRequestLineParserState::Done => {}
+            }
+        } else {
+            panic!("couldn't find a word when I expected one!");
         }
-
-        let head = self.raw_request_line.get(0).expect("we should always have a first element here");
     }
 
-
-
-    pub fn parse(&mut self) {
-        match self.state {
-            HttpRequestLineParserState::Init => {
-                if self.raw_request_line.is_empty() {
-                    panic!("found an empty line when starting to parse the request line!");
-                }
-                self.state = HttpRequestLineParserState::ParsingVerb;
-            },
-            HttpRequestLineParserState::ParsingVerb => {
-                let raw_verb = self.raw_request_line.pop_front().expect("should have a verb candidate");
-                let verb = HttpVerb::try_from(&raw_verb)?;
-
-                self.verb = Some(verb);
-            },
-            HttpRequestLineParserState::ParsingPath => {
-            },
-            HttpRequestLineParserState::ParsingVersion => {
-            },
-            HttpRequestLineParserState::Done => {}
+    pub fn parse(&mut self) -> Result<RequestLine> {
+        while self.state != HttpRequestLineParserState::Done {
+            self.parse_word();
         }
+        RequestLine::try_from(self)
     }
 }
 
-
+pub fn parse(line: &str) -> Result<RequestLine> {
+    let mut parser = HttpRequestLineParser::new(line);
+    parser.parse()
+}
