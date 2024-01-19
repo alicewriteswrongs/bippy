@@ -4,10 +4,10 @@ use std::net::{TcpListener, TcpStream};
 
 static SERVER_ADDRESS: &str = "127.0.0.1:8080";
 
-mod http_verb;
-mod http_version;
+mod http;
 mod parser;
 mod request;
+mod response;
 
 use parser::parse_request;
 
