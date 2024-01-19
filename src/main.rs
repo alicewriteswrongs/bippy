@@ -17,7 +17,7 @@ fn handle_stream(mut stream: TcpStream) -> Result<()> {
     if cfg!(debug_assertions) {
         println!("received request:");
         for line in lines {
-            println!("{}", line);
+            println!("    {}", line);
         }
     }
 
@@ -31,9 +31,6 @@ fn main() -> Result<()> {
     println!("Listening at http://{} 👂", SERVER_ADDRESS);
 
     for stream in listener.incoming() {
-        if cfg!(debug_assertions) {
-            println!("received a request");
-        }
         handle_stream(stream.context("failed to make connection")?)
             .context("failed to handle request")?;
     }
