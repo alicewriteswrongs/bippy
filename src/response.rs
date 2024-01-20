@@ -8,7 +8,7 @@ pub struct Response {
 }
 
 impl Response {
-    fn format_status_line(&self) -> String {
+    pub fn format_status_line(&self) -> String {
         format!("{} {}", self.version, self.status)
     }
 

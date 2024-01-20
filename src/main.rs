@@ -8,10 +8,9 @@ mod http;
 mod parser;
 mod request;
 mod response;
+mod server;
 
-use http::status;
 use parser::parse_request;
-use response::Response;
 
 fn handle_stream(mut stream: TcpStream) -> Result<()> {
     let buf_reader = BufReader::new(&mut stream);
@@ -29,11 +28,11 @@ fn handle_stream(mut stream: TcpStream) -> Result<()> {
         println!("received request: {}", request);
     }
 
-    let response = Response {
-        version: request.version.clone(),
-        status: status::HttpStatus::Ok200,
-        body: format!("Requested path: {}", request.path),
-    };
+    let response = server::serve_file(&request)?;
+
+    if cfg!(debug_assertions) {
+        println!("response: {}", response.format_status_line());
+    }
 
     stream.write_all(response.format().as_bytes())?;
 

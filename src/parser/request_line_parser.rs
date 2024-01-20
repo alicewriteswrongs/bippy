@@ -93,6 +93,8 @@ impl HttpRequestLineParser<'_> {
     }
 }
 
+/// Parse the first line of an HTTP request (the 'request line') to extra information aobut the
+/// HTTP verb, the path, and the HTTP version.
 pub fn parse(line: &str) -> Result<Request> {
     let mut parser = HttpRequestLineParser::new(line);
     parser.parse()
