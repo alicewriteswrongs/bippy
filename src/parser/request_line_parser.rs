@@ -1,9 +1,11 @@
-use crate::{
-    http_verb::HttpVerb, http_version::HttpVersion, request::RequestLine,
-};
 use anyhow::{anyhow, Result};
 
 use std::{collections::VecDeque, convert::TryFrom};
+
+use crate::{
+    http::{verb::HttpVerb, version::HttpVersion},
+    request::RequestLine,
+};
 
 impl TryFrom<&mut HttpRequestLineParser<'_>> for RequestLine {
     type Error = anyhow::Error;

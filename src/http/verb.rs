@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use std::convert::TryFrom;
+use std::fmt;
 
 #[derive(Clone, Debug)]
 pub enum HttpVerb {
@@ -30,6 +31,22 @@ impl TryFrom<&str> for HttpVerb {
             "DELETE" => Ok(HttpVerb::Delete),
             "CONNECT" => Ok(HttpVerb::Connect),
             other => Err(anyhow!("Got an unexpected HTTP verb: {}", other)),
+        }
+    }
+}
+
+impl fmt::Display for HttpVerb {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            HttpVerb::Get => write!(f, "GET"),
+            HttpVerb::Put => write!(f, "PUT"),
+            HttpVerb::Trace => write!(f, "TRACE"),
+            HttpVerb::Post => write!(f, "POST"),
+            HttpVerb::Patch => write!(f, "PATCH"),
+            HttpVerb::Options => write!(f, "OPTIONS"),
+            HttpVerb::Head => write!(f, "HEAD"),
+            HttpVerb::Delete => write!(f, "DELETE"),
+            HttpVerb::Connect => write!(f, "CONNECT"),
         }
     }
 }
