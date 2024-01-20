@@ -12,7 +12,7 @@ pub fn parse_request(raw_request: &Vec<String>) -> Result<Request> {
         .pop_front()
         .expect("Expected to find a request line but found none");
 
-    let request_line = request_line_parser::parse(&first_line)?;
+    let request = request_line_parser::parse(&first_line)?;
 
-    Ok(Request { request_line })
+    Ok(request)
 }

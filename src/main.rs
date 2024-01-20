@@ -30,9 +30,9 @@ fn handle_stream(mut stream: TcpStream) -> Result<()> {
     }
 
     let response = Response {
-        version: request.request_line.version.clone(),
+        version: request.version.clone(),
         status: status::HttpStatus::Ok200,
-        body: format!("Requested path: {}", request.request_line.path),
+        body: format!("Requested path: {}", request.path),
     };
 
     stream.write_all(response.format().as_bytes())?;

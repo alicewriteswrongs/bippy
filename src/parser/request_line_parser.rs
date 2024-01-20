@@ -4,10 +4,10 @@ use std::{collections::VecDeque, convert::TryFrom};
 
 use crate::{
     http::{verb::HttpVerb, version::HttpVersion},
-    request::RequestLine,
+    request::Request,
 };
 
-impl TryFrom<&mut HttpRequestLineParser<'_>> for RequestLine {
+impl TryFrom<&mut HttpRequestLineParser<'_>> for Request {
     type Error = anyhow::Error;
 
     fn try_from(
@@ -22,7 +22,7 @@ impl TryFrom<&mut HttpRequestLineParser<'_>> for RequestLine {
         // borrow checker shenanigans
         let parser = parser.clone();
 
-        let request_line = RequestLine {
+        let request_line = Request {
             verb: parser.verb.expect("HTTP verb should be present").clone(),
             path: parser.path.expect("HTTP path should be present"),
             version: parser.version.expect("HTTP version should be present"),
@@ -85,15 +85,15 @@ impl HttpRequestLineParser<'_> {
         }
     }
 
-    pub fn parse(&mut self) -> Result<RequestLine> {
+    pub fn parse(&mut self) -> Result<Request> {
         while self.state != HttpRequestLineParserState::Done {
             self.parse_word();
         }
-        RequestLine::try_from(self)
+        Request::try_from(self)
     }
 }
 
-pub fn parse(line: &str) -> Result<RequestLine> {
+pub fn parse(line: &str) -> Result<Request> {
     let mut parser = HttpRequestLineParser::new(line);
     parser.parse()
 }
