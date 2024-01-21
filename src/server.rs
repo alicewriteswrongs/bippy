@@ -1,4 +1,4 @@
-use crate::http::status::HttpStatus;
+use crate::http::HttpStatus;
 use crate::{request::Request, response::Response};
 use anyhow::Result;
 use std::env::current_dir;

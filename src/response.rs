@@ -1,5 +1,5 @@
-use crate::http::status::HttpStatus;
-use crate::http::version::HttpVersion;
+use crate::http::HttpStatus;
+use crate::http::HttpVersion;
 
 pub struct Response {
     pub version: HttpVersion,

@@ -1,4 +1,4 @@
-use crate::http::{verb::HttpVerb, version::HttpVersion};
+use crate::http::{HttpVerb, HttpVersion};
 use std::fmt;
 
 #[derive(Debug)]
