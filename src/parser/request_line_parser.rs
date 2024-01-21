@@ -2,7 +2,8 @@ use anyhow::{anyhow, Result};
 
 use std::{collections::VecDeque, convert::TryFrom};
 
-use crate::{http::HttpVerb, http::HttpVersion, request::Request};
+use crate::http::{HttpVerb, HttpVersion};
+use crate::request::Request;
 
 impl TryFrom<&mut HttpRequestLineParser<'_>> for Request {
     type Error = anyhow::Error;
