@@ -32,6 +32,8 @@ fn derive_file_path(serve_path: &Path, request_path: &str) -> Result<PathBuf> {
     //
     // perhaps the server should only serve 'web-ish' file types, i.e. file-types have have defined
     // MIME types (images, json, javascript, etc).
+    //
+    // what about trailing slashes?
     if !file_path.ends_with("index.html") {
         file_path.push("index.html");
     }
