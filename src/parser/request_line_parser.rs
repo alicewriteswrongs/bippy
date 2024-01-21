@@ -21,7 +21,7 @@ impl TryFrom<&mut HttpRequestLineParser<'_>> for Request {
         let parser = parser.clone();
 
         let request_line = Request {
-            verb: parser.verb.expect("HTTP verb should be present").clone(),
+            verb: parser.verb.expect("HTTP verb should be present"),
             path: parser.path.expect("HTTP path should be present"),
             version: parser.version.expect("HTTP version should be present"),
         };
@@ -91,7 +91,7 @@ impl HttpRequestLineParser<'_> {
     }
 }
 
-/// Parse the first line of an HTTP request (the 'request line') to extra information aobut the
+/// Parse the first line of an HTTP request (the 'request line') to extract information about the
 /// HTTP verb, the path, and the HTTP version.
 pub fn parse(line: &str) -> Result<Request> {
     let mut parser = HttpRequestLineParser::new(line);
