@@ -1,12 +1,12 @@
 use crate::http::HttpStatus;
 use crate::{request::Request, response::Response};
 use anyhow::Result;
-use std::env::current_dir;
-use std::fs::read;
-use std::path::PathBuf;
 
-pub fn serve_file(request: &Request) -> Result<Response> {
-    let file_path = derive_file_path(&request.path)?;
+use std::fs::read;
+use std::path::{Path, PathBuf};
+
+pub fn serve_file(request: &Request, serve_path: &Path) -> Result<Response> {
+    let file_path = derive_file_path(serve_path, &request.path)?;
 
     match read(file_path) {
         Ok(file_contents) => Ok(Response {
@@ -22,8 +22,9 @@ pub fn serve_file(request: &Request) -> Result<Response> {
     }
 }
 
-fn derive_file_path(path: &str) -> Result<PathBuf> {
-    let mut cwd = current_dir()?;
-    cwd.push(path.trim_start_matches('/'));
-    Ok(cwd)
+fn derive_file_path(serve_path: &Path, path: &str) -> Result<PathBuf> {
+    let mut serve_path = serve_path.to_path_buf();
+    // the `path` is from the HTTP request so it will always have a leading '/' character
+    serve_path.push(path.trim_start_matches('/'));
+    Ok(serve_path)
 }
