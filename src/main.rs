@@ -1,8 +1,10 @@
+#![feature(thread_id_value)]
 use anyhow::{Context, Result};
 use clap::Parser;
 use std::io::{prelude::*, BufReader};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
+use std::thread;
 
 static SERVER_ADDRESS: &str = "127.0.0.1:8080";
 
@@ -35,7 +37,11 @@ fn handle_stream(mut stream: TcpStream, path: &Path) -> Result<()> {
     let response = server::serve_file(&request, path)?;
 
     if cfg!(debug_assertions) {
-        println!("response: {}", response.format_status_line());
+        println!(
+            "response: {}, thread: {:#?}",
+            response.format_status_line(),
+            thread::current().id().as_u64()
+        );
     }
 
     stream.write_all(response.format().as_bytes())?;
@@ -50,14 +56,29 @@ fn main() -> Result<()> {
     let listener = TcpListener::bind(SERVER_ADDRESS)
         .with_context(|| format!("Failed to bind to {}!", SERVER_ADDRESS))?;
 
+    if cfg!(debug_assertions) {
+        println!("main thread started, thread id: {}", thread::current().id().as_u64());
+    }
+
     println!("Listening at http://{} 👂", SERVER_ADDRESS);
 
+    let mut thread_handles = vec![];
+
     for stream in listener.incoming() {
-        handle_stream(
-            stream.context("failed to make connection")?,
-            &file_serve_path,
-        )
-        .context("failed to handle request")?;
+        let file_serve_path = file_serve_path.clone();
+        let handle = thread::spawn(move || -> Result<()> {
+            handle_stream(
+                stream.context("failed to make connection")?,
+                &file_serve_path,
+            )
+            .context("failed to handle request")?;
+            Ok(())
+        });
+        thread_handles.push(handle);
+    }
+
+    for handle in thread_handles.into_iter() {
+        handle.join().unwrap()?;
     }
 
     Ok(())
