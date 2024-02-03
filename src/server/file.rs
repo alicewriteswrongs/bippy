@@ -26,16 +26,41 @@ fn derive_file_path(serve_path: &Path, request_path: &str) -> Result<PathBuf> {
     let mut file_path = serve_path.to_path_buf();
     // the `path` is from the HTTP request so it will always have a leading '/' character
     file_path.push(request_path.trim_start_matches('/'));
-    // TODO support other file types
-    //
-    // what happens if you request `/foo` and there's a file called `foo` in the directory?
-    //
-    // perhaps the server should only serve 'web-ish' file types, i.e. file-types have have defined
-    // MIME types (images, json, javascript, etc).
-    //
-    // what about trailing slashes?
-    if !file_path.ends_with("index.html") {
-        file_path.push("index.html");
+
+    if file_path.is_dir() {
+        // the path was for a directory, so we should follow webserver conventions and
+        // serve `index.html` if it's present
+        file_path.push("index.html")
+    } else {
+        println!("path aint dir");
     }
+
     Ok(file_path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::Result;
+    use tempfile::TempDir;
+    use std::fs;
+
+    #[test]
+    fn derive_file_path_adds_index_to_dir() -> Result<()> {
+        let dir = TempDir::new()?;
+        let derived = derive_file_path(&dir.path(), "/")?;
+        assert!(derived == dir.path().join("index.html"));
+        Ok(())
+    }
+
+    #[test]
+    fn derive_file_path_adds_index_to_subdir() -> Result<()> {
+        let dir = TempDir::new()?;
+        let route_path = dir.path().to_owned().join("/route");
+        fs::create_dir(&route_path)?;
+        
+        let derived = derive_file_path(&dir.path(), "/route")?;
+        assert!(derived == route_path.join("index.html"));
+        Ok(())
+    }
 }
