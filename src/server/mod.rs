@@ -4,7 +4,7 @@ use std::io::{prelude::*, BufReader};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::path::PathBuf;
-use std::thread;
+use std::thread::{self, JoinHandle};
 
 mod file;
 
@@ -12,14 +12,15 @@ static SERVER_ADDRESS: &str = "127.0.0.1:8080";
 
 pub struct Server {
     file_path: PathBuf,
+    thread_handles: Vec<JoinHandle<Result<(), anyhow::Error>>>
 }
 
 impl Server {
     pub fn new(file_path: PathBuf) -> Server {
-        Server { file_path }
+        Server { file_path, thread_handles: vec!() }
     }
 
-    pub fn start(self) -> Result<()> {
+    pub fn start(&mut self) -> Result<()> {
         let listener =
             TcpListener::bind(SERVER_ADDRESS).with_context(|| {
                 format!("Failed to bind to {}!", SERVER_ADDRESS)
@@ -34,8 +35,6 @@ impl Server {
 
         println!("Listening at http://{} 👂", SERVER_ADDRESS);
 
-        let mut thread_handles = vec![];
-
         for stream in listener.incoming() {
             let file_serve_path = self.file_path.clone();
             let handle = thread::spawn(move || -> Result<()> {
@@ -46,10 +45,15 @@ impl Server {
                 .context("failed to handle request")?;
                 Ok(())
             });
-            thread_handles.push(handle);
+            self.thread_handles.push(handle);
         }
 
-        for handle in thread_handles.into_iter() {
+        Ok(())
+    }
+
+    /// Shut down the server, killing all of the other threads.
+    pub fn close(&self) -> Result<()> {
+        for handle in self.thread_handles.into_iter() {
             handle.join().unwrap()?;
         }
         Ok(())
