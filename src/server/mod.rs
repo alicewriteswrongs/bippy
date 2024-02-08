@@ -1,10 +1,13 @@
+use crate::interrupt::ctrlc_channel;
 use crate::parser::parse_request;
+use crate::threadpool::ThreadPool;
 use anyhow::{Context, Result};
-use std::io::{prelude::*, BufReader};
+use std::io::{prelude::*, BufReader, ErrorKind};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::path::PathBuf;
 use std::thread;
+use std::time::Duration;
 
 mod file;
 
@@ -25,6 +28,10 @@ impl Server {
                 format!("Failed to bind to {}!", SERVER_ADDRESS)
             })?;
 
+        listener
+            .set_nonblocking(true)
+            .context("cannot set non-blocking on TcpListener")?;
+
         if cfg!(debug_assertions) {
             println!(
                 "main thread started, thread id: {}",
@@ -34,23 +41,42 @@ impl Server {
 
         println!("Listening at http://{} 👂", SERVER_ADDRESS);
 
-        let mut thread_handles = vec![];
+        let ctrlc_receiver = ctrlc_channel();
+
+        let thread_pool = ThreadPool::new(4)?;
 
         for stream in listener.incoming() {
-            let file_serve_path = self.file_path.clone();
-            let handle = thread::spawn(move || -> Result<()> {
-                handle_stream(
-                    stream.context("failed to make connection")?,
-                    &file_serve_path,
-                )
-                .context("failed to handle request")?;
-                Ok(())
-            });
-            thread_handles.push(handle);
-        }
+            // we listen for ctrl-c interrupt, if it happens we exit the loop allowing all our
+            // resources to be cleaned up. `try_recv` is non-blocking, so we can check whether
+            // we've gotten an interrupt and, if not, just keep going!
+            if let Ok(_) = ctrlc_receiver.try_recv() {
+                break;
+            }
 
-        for handle in thread_handles.into_iter() {
-            handle.join().unwrap()?;
+            match stream {
+                Ok(stream) => {
+                    let file_serve_path = self.file_path.clone();
+                    thread_pool.execute(move || -> Result<()> {
+                        handle_stream(stream, &file_serve_path)
+                            .context("failed to handle request")?;
+                        Ok(())
+                    });
+                }
+                // basically this handles the case where there isn't a connection yet
+                // since we put the TcpListener into non-blocking mode it returns immediately with
+                // whether there is currently a connection or not. If there _is_ a connection, we
+                // want to handle it (as above) but if not we want to keep going.
+                //
+                // We do a little sleep because we don't want to peg a CPU core just looping.
+                Err(e) if e.kind() == ErrorKind::WouldBlock => {
+                    thread::sleep(Duration::from_millis(10));
+                    continue;
+                }
+                Err(_) => {
+                    thread::sleep(Duration::from_millis(10));
+                    continue;
+                }
+            }
         }
         Ok(())
     }
