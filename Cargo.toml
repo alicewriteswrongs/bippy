@@ -5,6 +5,7 @@ edition = "2021"
 license = "MIT"
 description = "A really simple CLI HTTP server"
 repository = "https://github.com/alicewriteswrongs/bippy"
+homepage = "https://github.com/alicewriteswrongs/bippy"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
