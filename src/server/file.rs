@@ -31,8 +31,6 @@ fn derive_file_path(serve_path: &Path, request_path: &str) -> Result<PathBuf> {
         // the path was for a directory, so we should follow webserver conventions and
         // serve `index.html` if it's present
         file_path.push("index.html")
-    } else {
-        println!("path aint dir");
     }
 
     Ok(file_path)
