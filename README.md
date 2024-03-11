@@ -6,7 +6,7 @@ is too much bother.
 
 It's really really not for production use, I wrote it to learn a bit about
 sockets and http, and while I don't know if I actually learned anything it does
-somewhat.
+somewhat work.
 
 ## Usage
 
