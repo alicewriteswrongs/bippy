@@ -40,8 +40,8 @@ fn derive_file_path(serve_path: &Path, request_path: &str) -> Result<PathBuf> {
 mod tests {
     use super::*;
     use anyhow::Result;
-    use tempfile::TempDir;
     use std::fs;
+    use tempfile::TempDir;
 
     #[test]
     fn derive_file_path_adds_index_to_dir() -> Result<()> {
@@ -56,7 +56,7 @@ mod tests {
         let dir = TempDir::new()?;
         let route_path = dir.path().to_owned().join("/route");
         fs::create_dir(&route_path)?;
-        
+
         let derived = derive_file_path(&dir.path(), "/route")?;
         assert!(derived == route_path.join("index.html"));
         Ok(())

@@ -4,10 +4,12 @@ use clap::Parser;
 
 mod cli;
 mod http;
+mod interrupt;
 mod parser;
 mod request;
 mod response;
 mod server;
+mod threadpool;
 
 use cli::CLIArgs;
 use server::Server;
